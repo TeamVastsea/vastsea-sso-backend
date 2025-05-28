@@ -151,6 +151,9 @@ export class PermissionService {
           administrator: true,
         },
       });
+      if (!targetClient) {
+        throw new HttpException('客户端不存在', HttpStatus.NOT_FOUND);
+      }
       if (
         targetClient.administrator.every((manage) => manage.id !== account) &&
         !force
@@ -234,14 +237,25 @@ export class PermissionService {
     isSuper?: boolean,
     name?: string,
   ) {
-    if (!isSuper && !clientId) {
-      throw new HttpException('参数错误', HttpStatus.BAD_REQUEST);
+    let total = Promise.resolve(0n);
+    if (isSuper) {
+      if (!clientId) {
+        total = this.redis
+          .get(PERMISSION_TOTAL)
+          .then((val) => BigInt(val ?? 0));
+      } else {
+        total = this.redis
+          .get(CLIENT_PERMISSION_TOTAL(clientId))
+          .then((val) => BigInt(val ?? 0));
+      }
+    } else {
+      if (!clientId) {
+        throw new HttpException('参数错误', HttpStatus.BAD_REQUEST);
+      }
+      total = this.redis
+        .get(CLIENT_PERMISSION_TOTAL(clientId))
+        .then((val) => BigInt(val ?? 0));
     }
-    let total = (
-      !clientId && isSuper
-        ? this.redis.get(PERMISSION_TOTAL)
-        : this.redis.get(CLIENT_PERMISSION_TOTAL(clientId))
-    ).then((val) => BigInt(val ?? 0));
 
     const data = this.prisma.permission.findMany({
       where: {
