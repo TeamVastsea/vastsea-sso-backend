@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  // 来自redis的全局计数器
+  id          BigInt @id
+  email       String
+  password    String
+  createAt    DateTime  @default(now())
+  updateAt    DateTime  @updatedAt
+  salt        String
+  iterations  Int
+
+  active    Boolean @default(true)
+
+  profile Profile?
+  role    Role[]
+
+  client Client[]
+
+  @@index([email])
+}
+
+
+model Profile {
+  id        String  @id @default(uuid())
+  nick      String
+  desc      String?
+  avatar    String?
+  account   Account @relation(fields: [accountId], references: [id])
+  accountId BigInt  @unique @map("accountid")
+}
+
+model Client {
+  id            BigInt  @id
+  name          String
+  desc          String?
+  avatar        String?
+  clientId      String  @unique
+  clientSecret  String
+  redirect      String
+  administrator Account[]
+  active        Boolean @default(true)
+  permission Permission[]
+  role Role[]
+
+  @@index([name,clientId,active])
+}
+
+model Permission {
+  id        BigInt  @id
+  name      String
+  desc      String
+  clientId  String
+  role      Role[]
+  client    Client @relation(fields: [clientPK], references: [id])
+  clientPK  BigInt
+  active    Boolean @default(true)
+  @@index([name, clientId])
+}
+
+model Role {
+  id         BigInt  @id
+  name       String
+  desc       String  @default("")
+  clientId   String
+  parents    Role[] @relation("roles")
+  children   Role[] @relation("roles")
+  account    Account[]
+  permission Permission[]
+  client     Client @relation(fields: [clientPK], references: [id])
+  clientPK   BigInt
+  active     Boolean @default(true)
+
+  @@index([id, desc, clientId, active])
+}

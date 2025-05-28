@@ -1,0 +1,88 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2021",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@app/config": [
+        "libs/config/src"
+      ],
+      "@app/config/*": [
+        "libs/config/src/*"
+      ],
+      "@app/constant": [
+        "libs/constant/src"
+      ],
+      "@app/constant/*": [
+        "libs/constant/src/*"
+      ],
+      "@app/decorator": [
+        "libs/decorator/src"
+      ],
+      "@app/decorator/*": [
+        "libs/decorator/src/*"
+      ],
+      "@app/global-counter": [
+        "libs/global-counter/src"
+      ],
+      "@app/global-counter/*": [
+        "libs/global-counter/src/*"
+      ],
+      "@app/guard": [
+        "libs/guard/src"
+      ],
+      "@app/guard/*": [
+        "libs/guard/src/*"
+      ],
+      "@app/jwt": [
+        "libs/jwt/src"
+      ],
+      "@app/jwt/*": [
+        "libs/jwt/src/*"
+      ],
+      "@app/mail": [
+        "libs/mail/src"
+      ],
+      "@app/mail/*": [
+        "libs/mail/src/*"
+      ],
+      "@app/prisma": [
+        "libs/prisma/src"
+      ],
+      "@app/prisma-cache": [
+        "libs/prisma-cache/src"
+      ],
+      "@app/prisma-cache/*": [
+        "libs/prisma-cache/src/*"
+      ],
+      "@app/prisma/*": [
+        "libs/prisma/src/*"
+      ],
+      "@app/redis-cache": [
+        "libs/redis-cache/src"
+      ],
+      "@app/redis-cache/*": [
+        "libs/redis-cache/src/*"
+      ]
+    }
+  },
+  "include": [
+    "./**/*.ts",
+    "webpack.config.js"
+  ],
+  "exclude": ["node_modules"]
+}

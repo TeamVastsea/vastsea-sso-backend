@@ -1,0 +1,23 @@
+FROM node:23-alpine AS base
+
+FROM base AS builder
+WORKDIR /app
+
+ADD . .
+
+RUN npm i -g pnpm && \
+    pnpm i --frozen-lockfile --prefer-offline && \
+    pnpm prisma generate --schema=prisma/schema.prisma && \
+    pnpm build
+
+FROM base AS runner
+WORKDIR /app
+
+COPY --from=builder /app .
+
+RUN npm i -g pnpm && \
+    apk add --no-cache openssl
+
+EXPOSE 3000
+
+CMD ["sh", "-c", "pnpm prisma migrate deploy && node dist/main.js"]
