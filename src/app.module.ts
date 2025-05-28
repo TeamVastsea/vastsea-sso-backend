@@ -72,6 +72,7 @@ const BUILT_IN_PERMISSIONS = [
   'ROLE::QUERY::INFO::*',
   'ROLE::QUERY::LIST',
   'ROLE::QUERY::LIST::*',
+  'AUTH-SERVER::LOGIN'
 ];
 
 @Module({
@@ -93,7 +94,7 @@ const BUILT_IN_PERMISSIONS = [
       ),
       global: true,
     }),
-    process.env.REDIS_CLUSTER
+    process.env.REDIS_CLUSTER?.toString().toLowerCase() === 'true'
       ? ClusterModule.forRootAsync(
           {
             inject: [ConfigService],

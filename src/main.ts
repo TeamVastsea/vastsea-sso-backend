@@ -8,6 +8,10 @@ import { join } from 'path';
 import 'winston-daily-rotate-file';
 import * as winston from 'winston';
 import { utilities, WinstonModule } from 'nest-winston';
+import { config } from 'dotenv';
+if (__DEV__) {
+  config({ path: join(__dirname, '../.env') });
+}
 
 const CONSOLE_TRANSPORT = new winston.transports.Console({
   format: winston.format.combine(
@@ -52,15 +56,14 @@ async function bootstrap() {
   const instance = winston.createLogger({
     transports: [CONSOLE_TRANSPORT, FILE_TRANSPORT, ERR_FILE_TRANSPORT],
   });
-
   const app = await NestFactory.create(AppModule, {
     logger: WinstonModule.createLogger({ instance }),
   });
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle(process.env.SWAGGER_TITLE)
-    .setDescription(process.env.SWAGGER_DESC)
-    .setVersion(process.env.VERSION)
+    .setTitle(process.env.SWAGGER_TITLE ?? 'Vastsea SSO')
+    .setDescription(process.env.SWAGGER_DESC ?? '')
+    .setVersion(process.env.VERSION ?? '1.0.0')
     .build();
   const factory = () => SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('/swagger', app, factory);

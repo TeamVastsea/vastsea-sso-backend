@@ -2,10 +2,10 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateAccount } from './dto/create-account';
 import { pbkdf2Sync, randomBytes } from 'crypto';
 import {
-    ACCOUNT_TOTAL,
-    AUTH_EMAIL_CODE,
-    ID_COUNTER,
-    TOKEN_PAIR,
+  ACCOUNT_TOTAL,
+  AUTH_EMAIL_CODE,
+  ID_COUNTER,
+  TOKEN_PAIR,
 } from '@app/constant';
 import { PrismaService } from '@app/prisma';
 import { AutoRedis } from '@app/decorator';
@@ -18,249 +18,240 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class AccountService {
-    private logger: Logger = new Logger(AccountService.name);
-    constructor(
-        private prisma: PrismaService,
-        @AutoRedis() private redis: Redis | Cluster,
-        private cnt: GlobalCounterService,
-        private mail: MailerService,
-        private config: ConfigService,
-    ) {}
-    async createAccount(body: CreateAccount) {
-        const { email, password, profile } = body;
-        const dbAccount = await this.prisma.account.findFirst({
-            where: { email },
-        });
-        if (dbAccount) {
-            throw new HttpException(`邮箱已存在`, HttpStatus.BAD_REQUEST);
-        }
-        const salt = randomBytes(128).toString('base64');
-        const iterations = 1000;
-        const hashPwd = this.hashPwd(password, salt, iterations);
-        const id = await this.cnt.incr(ID_COUNTER.ACCOUNT);
-        const account = await this.prisma.account.create({
-            data: {
-                id,
-                password: hashPwd,
-                email,
-                salt,
-                iterations,
-                profile: {
-                    create: {
-                        ...profile,
-                        nick: profile.nick,
-                    },
-                },
-                role: body.role
-                    ? {
-                          connect: body.role.map((id) => ({ id })),
-                      }
-                    : undefined,
-            },
-            include: {
-                profile: true,
-            },
-        });
-        await this.redis.incr(ACCOUNT_TOTAL);
-        return {
-            id: account.id,
-            email: account.email,
-            profile: account.profile,
-        };
+  private logger: Logger = new Logger(AccountService.name);
+  constructor(
+    private prisma: PrismaService,
+    @AutoRedis() private redis: Redis | Cluster,
+    private cnt: GlobalCounterService,
+    private mail: MailerService,
+    private config: ConfigService,
+  ) {}
+  async createAccount(body: CreateAccount) {
+    const { email, password, profile } = body;
+    const dbAccount = await this.prisma.account.findFirst({
+      where: { email },
+    });
+    if (dbAccount) {
+      throw new HttpException(`邮箱已存在`, HttpStatus.BAD_REQUEST);
     }
-    async removeAccount(id: bigint) {
-        const account = await this.getAccountInfo(id);
-        if (!account) {
-            throw new HttpException('账号不存在', HttpStatus.NOT_FOUND);
-        }
-        return this.prisma.account.update({
-            where: {
-                id,
-            },
-            data: {
-                active: false,
-            },
-        });
+    const salt = randomBytes(128).toString('base64');
+    const iterations = 1000;
+    const hashPwd = this.hashPwd(password, salt, iterations);
+    const id = await this.cnt.incr(ID_COUNTER.ACCOUNT);
+    const account = await this.prisma.account.create({
+      data: {
+        id,
+        password: hashPwd,
+        email,
+        salt,
+        iterations,
+        profile: {
+          create: {
+            ...profile,
+            nick: profile.nick,
+          },
+        },
+        role: body.role
+          ? {
+              connect: body.role.map((id) => ({ id })),
+            }
+          : undefined,
+      },
+      include: {
+        profile: true,
+      },
+    });
+    await this.redis.incr(ACCOUNT_TOTAL);
+    return {
+      id: account.id,
+      email: account.email,
+      profile: account.profile,
+    };
+  }
+  async removeAccount(id: bigint) {
+    const account = await this.getAccountInfo(id);
+    if (!account) {
+      throw new HttpException('账号不存在', HttpStatus.NOT_FOUND);
     }
+    return this.prisma.account.update({
+      where: {
+        id,
+      },
+      data: {
+        active: false,
+      },
+    });
+  }
 
-    async updateAccount(id: bigint, data: UpdateAccount) {
-        const account = await this.getAccountInfo(id);
-        if (!account) {
-            throw new HttpException('客户端不存在', HttpStatus.NOT_FOUND);
-        }
-        const salt = randomBytes(128).toString('base64');
-        const iterations = 1000;
-        let password;
-        if (data.password) {
-            password = this.hashPwd(data.password, salt, iterations);
-        }
-        return this.prisma.account
-            .update({
-                where: {
-                    id,
-                },
-                data: {
-                    email: data.email,
-                    password,
-                    salt: data.password === undefined ? undefined : salt,
-                    iterations,
-                    profile: {
-                        update: {
-                            nick: data.profile?.nick,
-                            desc: data.profile?.desc,
-                            avatar: data.profile?.avatar,
-                        },
-                    },
-                    active: data.active,
-                    role: data.role
-                        ? {
-                              set: [],
-                              connect: data.role.map((id) => ({ id })),
-                          }
-                        : undefined,
-                },
-                include: {
-                    profile: true,
-                },
-            })
-            .then((account) => {
-                return this.kickout(account.id).then(() => account);
-            });
+  async updateAccount(id: bigint, data: UpdateAccount) {
+    const account = await this.getAccountInfo(id);
+    if (!account) {
+      throw new HttpException('客户端不存在', HttpStatus.NOT_FOUND);
     }
-    async kickout(id: bigint) {
-        const session = await this.redis.get(`AUTH::${id}::SESSION`);
-        return this.redis.del(
-            TOKEN_PAIR(id.toString(), 'access'),
-            TOKEN_PAIR(id.toString(), 'refresh'),
-            `AUTH::SESSION::${session}::META`,
-        );
+    const salt = randomBytes(128).toString('base64');
+    const iterations = 1000;
+    let password;
+    if (data.password) {
+      password = this.hashPwd(data.password, salt, iterations);
     }
-
-    async getAccountList(preId?: bigint, size: number = 20) {
-        const total = this.redis
-            .get(ACCOUNT_TOTAL)
-            .then((val) => BigInt(val ?? 0));
-        const data = this.prisma.account.findMany({
-            where: {
-                id: {
-                    gt: preId,
-                },
+    return this.prisma.account
+      .update({
+        where: {
+          id,
+        },
+        data: {
+          email: data.email,
+          password,
+          salt: data.password === undefined ? undefined : salt,
+          iterations,
+          profile: {
+            update: {
+              nick: data.profile?.nick,
+              desc: data.profile?.desc,
+              avatar: data.profile?.avatar,
             },
-            take: size,
+          },
+          active: data.active,
+          role: data.role
+            ? {
+                set: [],
+                connect: data.role.map((id) => ({ id })),
+              }
+            : undefined,
+        },
+        include: {
+          profile: true,
+        },
+      })
+      .then((account) => {
+        return this.kickout(account.id).then(() => account);
+      });
+  }
+  async kickout(id: bigint) {
+    const session = await this.redis.get(`AUTH::${id}::SESSION`);
+    return this.redis.del(
+      TOKEN_PAIR(id.toString(), 'access'),
+      TOKEN_PAIR(id.toString(), 'refresh'),
+      `AUTH::SESSION::${session}::META`,
+    );
+  }
+
+  async getAccountList(preId?: bigint, size: number = 20) {
+    const total = this.redis.get(ACCOUNT_TOTAL).then((val) => BigInt(val ?? 0));
+    const data = this.prisma.account.findMany({
+      where: {
+        id: {
+          gt: preId,
+        },
+      },
+      take: size,
+      select: {
+        id: true,
+        email: true,
+        profile: true,
+        active: true,
+        createAt: true,
+      },
+    });
+    return {
+      total: await total,
+      data: await data,
+    };
+  }
+  async getEmailCode(email: string) {
+    const emailCode = await this.redis.get(AUTH_EMAIL_CODE(email));
+    if (!emailCode) {
+      throw new HttpException('您需要先发送验证码', HttpStatus.BAD_REQUEST);
+    }
+    return emailCode;
+  }
+  async verifyCode(email: string, userCode: string, realCode: string) {
+    if (userCode !== realCode) {
+      throw new HttpException('验证码不正确', HttpStatus.BAD_REQUEST);
+    }
+    await this.redis.del(AUTH_EMAIL_CODE(email));
+  }
+  getAccountInfo(id: bigint) {
+    return this.prisma.account
+      .findFirst({
+        where: { id },
+        select: {
+          id: true,
+          email: true,
+          profile: true,
+          active: true,
+          role: {
             select: {
-                id: true,
-                email: true,
-                profile: true,
-                active: true,
-                createAt: true,
+              id: true,
+              name: true,
+              desc: true,
             },
-        });
-        return {
-            total: await total,
-            data: await data,
-        };
+          },
+        },
+      })
+      .then((account) => account);
+  }
+  findAccountByEmail<I extends Prisma.AccountInclude>(
+    email: string,
+    include?: I,
+  ) {
+    return this.prisma.account.findFirst({ where: { email }, include });
+  }
+  async verifyPassword(email: string, userPassword: string) {
+    const account = await this.prisma.account.findFirst({
+      where: { email },
+    });
+    if (!account) {
+      throw new HttpException('账号不存在', HttpStatus.NOT_FOUND);
     }
-    async getEmailCode(email: string) {
-        const emailCode = await this.redis.get(AUTH_EMAIL_CODE(email));
-        if (!emailCode) {
-            throw new HttpException(
-                '您需要先发送验证码',
-                HttpStatus.BAD_REQUEST,
-            );
-        }
-        return emailCode;
+    return (
+      this.hashPwd(userPassword, account.salt, account.iterations) ===
+      account.password
+    );
+  }
+  hashPwd(password: string, salt: string, iterations: number) {
+    return pbkdf2Sync(password, salt, iterations, 64, 'sha512').toString('hex');
+  }
+  async createEmailCode(email: string) {
+    if (await this.redis.exists(AUTH_EMAIL_CODE(email))) {
+      throw new HttpException(
+        '请不要重复发送验证码',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
-    async verifyCode(email: string, userCode: string, realCode: string) {
-        if (userCode !== realCode) {
-            throw new HttpException('验证码不正确', HttpStatus.BAD_REQUEST);
-        }
-        await this.redis.del(AUTH_EMAIL_CODE(email));
+    const account = await this.prisma.account.findFirst({
+      where: { email },
+    });
+    if (account) {
+      throw new HttpException('用户已存在', HttpStatus.BAD_REQUEST);
     }
-    getAccountInfo(id: bigint) {
-        return this.prisma.account
-            .findFirst({
-                where: { id },
-                select: {
-                    id: true,
-                    email: true,
-                    profile: true,
-                    active: true,
-                    role: {
-                        select: {
-                            id: true,
-                            name: true,
-                            desc: true,
-                        },
-                    },
-                },
-            })
-            .then((account) => account);
-    }
-    findAccountByEmail<I extends Prisma.AccountInclude>(
-        email: string,
-        include?: I,
-    ) {
-        return this.prisma.account.findFirst({ where: { email }, include });
-    }
-    async verifyPassword(email: string, userPassword: string) {
-        const account = await this.prisma.account.findFirst({
-            where: { email },
-        });
-        if (!account) {
-            throw new HttpException('账号不存在', HttpStatus.NOT_FOUND);
-        }
-        return (
-            this.hashPwd(userPassword, account.salt, account.iterations) ===
-            account.password
-        );
-    }
-    hashPwd(password: string, salt: string, iterations: number) {
-        return pbkdf2Sync(password, salt, iterations, 64, 'sha512').toString(
-            'hex',
-        );
-    }
-    async createEmailCode(email: string) {
-        if (await this.redis.exists(AUTH_EMAIL_CODE(email))) {
-            throw new HttpException(
-                '请不要重复发送验证码',
-                HttpStatus.TOO_MANY_REQUESTS,
-            );
-        }
-        const account = await this.prisma.account.findFirst({
-            where: { email },
-        });
-        if (account) {
-            throw new HttpException('用户已存在', HttpStatus.BAD_REQUEST);
-        }
-        const code = randomBytes(80).toString('hex').slice(0, 16);
-        const setCodeHandle = this.redis.set(AUTH_EMAIL_CODE(email), code);
-        const mailExpire = this.config.get('cache.ttl.auth.emailCode')!;
-        const humanExpireText = mailExpire / 60000;
-        return (
-            __TEST__ || __DEV__
-                ? Promise.resolve()
-                : this.mail.sendMail({
-                      to: email,
-                      from:
-                          this.config.get('email.email') ??
-                          'admin@no-reply.com',
-                      subject: '欢迎注册',
-                      text: `验证码: ${code}\n有效期 ${humanExpireText} 分钟
+    const code = randomBytes(80).toString('hex').slice(0, 16);
+    const setCodeHandle = this.redis.set(AUTH_EMAIL_CODE(email), code);
+    const mailExpire = this.config.get('cache.ttl.auth.emailCode')!;
+    const humanExpireText = mailExpire / 60000;
+    return (
+      __TEST__ || __DEV__
+        ? Promise.resolve()
+        : this.mail.sendMail({
+            to: email,
+            from: this.config.get('email.email') ?? 'admin@no-reply.com',
+            subject: '欢迎注册',
+            text: `验证码: ${code}\n有效期 ${humanExpireText} 分钟
           `,
-                  })
-        )
-            .then(() => setCodeHandle)
-            .then(() => this.redis.pexpire(AUTH_EMAIL_CODE(email), mailExpire))
-            .then(() => this.redis.ttl(AUTH_EMAIL_CODE(email)))
-            .catch((err) => {
-                this.logger.error(err.message, err.stack);
-                throw err;
-            });
+          })
+    )
+      .then(() => setCodeHandle)
+      .then(() => this.redis.pexpire(AUTH_EMAIL_CODE(email), mailExpire))
+      .then(() => this.redis.ttl(AUTH_EMAIL_CODE(email)))
+      .catch((err) => {
+        this.logger.error(err.message, err.stack);
+        throw err;
+      });
+  }
+  async userOnline(userId: bigint) {
+    if (!(await this.getAccountInfo(userId))) {
+      throw new HttpException('用户不存在', HttpStatus.NOT_FOUND);
     }
-    async userOnline(userId: bigint) {
-        if (!(await this.getAccountInfo(userId))) {
-            throw new HttpException('用户不存在', HttpStatus.NOT_FOUND);
-        }
-        return this.redis.exists(TOKEN_PAIR(userId.toString(), 'access'));
-    }
+    return this.redis.exists(TOKEN_PAIR(userId.toString(), 'access'));
+  }
 }

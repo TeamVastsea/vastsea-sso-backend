@@ -10,6 +10,7 @@ declare namespace NodeJS {
     VERSION?: string;
     COMMON_ERROR_REDIRECT: string;
     APP_NAME: string;
+    ADMIN_PWD?: string;
   }
 }
 
