@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
@@ -15,7 +16,9 @@ import { Request, Response } from 'express';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshToken } from '../dto/refresh-token';
 import { JwtService } from '@app/jwt';
-import { isNil } from 'ramda';
+import { findLast, isNil } from 'ramda';
+import { Auth } from '@app/decorator';
+import { Token } from '../token.decorator';
 
 @Controller('/v2/auth')
 export class V2Auth {
@@ -131,6 +134,43 @@ export class V2Auth {
       return { accessToken: newAccessToken, refreshToken: newRefreshToken };
     } catch {
       throw new HttpException('Token 不合法', HttpStatus.BAD_REQUEST);
+    }
+  }
+  @Auth()
+  @Delete('/token')
+  async logout(
+    @Token() token: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    if (!token) {
+      res.clearCookie('session-state');
+      res.status(HttpStatus.OK);
+      return;
+    }
+    try {
+      const { id } = this.jwt.decode<{ id: string }>(token);
+      if (!id) {
+        res.clearCookie('session-state');
+        res.status(HttpStatus.OK);
+      }
+      const session = await this.authService.readSessionById(id);
+      if (session) {
+        await this.authService.revokeSession(session);
+      }
+      const { accessToken, refreshToken } =
+        await this.authService.readTokenPairById(id);
+      if (accessToken.token) {
+        await this.authService.invokeToken(id, accessToken.token, 'access');
+      }
+      if (refreshToken.token) {
+        await this.authService.invokeToken(id, refreshToken.token, 'refresh');
+      }
+      res.status(HttpStatus.OK);
+    } catch {
+    } finally {
+      res.clearCookie('session-state');
+      res.status(HttpStatus.OK);
     }
   }
 }
