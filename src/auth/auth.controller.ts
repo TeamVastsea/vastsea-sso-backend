@@ -47,6 +47,7 @@ export class AuthController {
     }
     const tokenPayload = await this.authService.createTokenPair(
       loginHandle.id.toString(),
+      body.email,
     );
     await this.authService.invokeTokenPair(loginHandle.id, tokenPayload);
     return tokenPayload;
@@ -67,7 +68,10 @@ export class AuthController {
     }
     const codeHandle = await this.authService.getCodeBySession(cookie);
     if (codeHandle.ok === false) {
-      throw new HttpException(codeHandle.reason, codeHandle.state);
+      throw new HttpException(
+        codeHandle.reason ?? '未知错误',
+        codeHandle.state ?? 500,
+      );
     }
     return { code: codeHandle.code };
   }

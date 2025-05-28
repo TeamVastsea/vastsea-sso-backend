@@ -64,6 +64,9 @@ export class AuthService {
         id: true,
       },
     });
+    if (!account) {
+      throw new HttpException('用户不存在', HttpStatus.NOT_FOUND);
+    }
     return {
       ok: true,
       id: account.id,
@@ -71,32 +74,30 @@ export class AuthService {
   }
 
   async createTokenPair(id: bigint | string, email: string) {
+    const accessTokenTTL = this.config.get('cache.ttl.auth.token.access')!;
+    const refreshTokenTTL = this.config.get('cache.ttl.auth.token.refresh')!;
     const accessToken = await this.jwt.sign(
       { id, random: randomBytes(16).toString('base64'), email },
       'access',
-      this.config.get('cache.ttl.auth.token.access'),
+      accessTokenTTL,
       { issuer: process.env.APP_NAME },
     );
     const refreshToken = await this.jwt.sign(
       { id, random: randomBytes(32).toString('base64') },
       'refresh',
-      this.config.get('cache.ttl.auth.token.refresh'),
+      refreshTokenTTL,
       { issuer: process.env.APP_NAME },
     );
     const tokenPayload = new TokenPayload();
     tokenPayload.access_token = accessToken;
     tokenPayload.refresh_token = refreshToken;
     tokenPayload.expire = {
-      access: this.config.get('cache.ttl.auth.token.access'),
-      refresh: this.config.get('cache.ttl.auth.token.refresh'),
+      access: accessTokenTTL,
+      refresh: refreshTokenTTL,
     };
     tokenPayload.expireAt = {
-      access: new Date(
-        Date.now() + this.config.get('cache.ttl.auth.token.access'),
-      ).toLocaleString(),
-      refresh: new Date(
-        Date.now() + this.config.get('cache.ttl.auth.token.refresh'),
-      ).toLocaleString(),
+      access: new Date(Date.now() + accessTokenTTL).toLocaleString(),
+      refresh: new Date(Date.now() + refreshTokenTTL).toLocaleString(),
     };
     return tokenPayload;
   }
@@ -119,7 +120,11 @@ export class AuthService {
     if (cacheRefreshToken !== refreshToken) {
       throw new HttpException('令牌不合法', HttpStatus.BAD_REQUEST);
     }
-    const tokenPair = await this.createTokenPair(accountId);
+    const accountInfo = await this.account.getAccountInfo(BigInt(accountId));
+    if (!accountInfo) {
+      throw new HttpException('用户不存在', HttpStatus.NOT_FOUND);
+    }
+    const tokenPair = await this.createTokenPair(accountId, accountInfo.email);
     await this.invokeTokenPair(accountId, tokenPair);
     await this.refreshSessionState(accountId);
     return tokenPair;
