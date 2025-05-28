@@ -19,6 +19,6 @@ REDIRECT=                 # 携带授权码跳转的URL
 COMMON_ERROR_REDIRECT=    # 兜底错误跳转
 REDIS_CLUSTER=            # 是否启用redis集群模式 true 未开启 false 为关闭
 APP_NAME=                 # 人类可读的SSO名称
-ADMIN_PWD="admin"         # 超级管理员密码, 空则为随机字符串, 初始化时使用
+ADMIN_PWD=                # 超级管理员密码, 空则为随机字符串, 初始化时使用
 ``` 
 
