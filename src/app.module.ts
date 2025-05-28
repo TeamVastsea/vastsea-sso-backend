@@ -72,7 +72,7 @@ const BUILT_IN_PERMISSIONS = [
   'ROLE::QUERY::INFO::*',
   'ROLE::QUERY::LIST',
   'ROLE::QUERY::LIST::*',
-  'AUTH-SERVER::LOGIN'
+  'AUTH-SERVER::LOGIN',
 ];
 
 @Module({

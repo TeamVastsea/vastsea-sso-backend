@@ -18,6 +18,8 @@ import { RefreshToken } from './dto/refresh-token';
 import { JwtService } from '@app/jwt';
 import { PermissionService } from '../permission/permission.service';
 import { AccountService } from '../account/account.service';
+import { Token } from './token.decorator';
+import { Auth } from '@app/decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -155,5 +157,31 @@ export class AuthController {
     @Query('clientId') clientId: string,
   ) {
     await this.authService.revokeSession(code, clientId);
+  }
+
+  @Auth()
+  @Delete('/token')
+  async logout(
+    @Token() token: string,
+    @Res() res: Response,
+    @Req() req: Request
+  ) {
+    if (!token) {
+      return;
+    }
+    try {
+      const { id } = this.jwt.decode<{ id: string }>(token);
+      if (!id) {
+        return;
+      }
+      const session = req.cookies['session-state'];
+      if (session) {
+        await this.authService.directRevokeSession(id, session);
+        res.clearCookie('session-state');
+      }
+      return this.authService.revokeToken(id);
+    } catch {
+      return;
+    }
   }
 }

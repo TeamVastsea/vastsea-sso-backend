@@ -197,6 +197,9 @@ export class AuthService {
     )) as SessionMeta;
     await this.invokeSessionState(code, clientId, session, userId);
   }
+  directRevokeSession(id: bigint|string, session: string){
+    return this.redis.del(`AUTH::${id}::SESSION`,`AUTH::SESSION::${session}`, `AUTH::SESSION::${session}::META`);
+  }
   async revokeSession(code: string, clientId: string) {
     const sessionKey = `AUTH::${code}::${clientId}`;
     const session = await this.redis.get(sessionKey);
