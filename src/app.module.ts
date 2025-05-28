@@ -206,6 +206,7 @@ export class AppModule implements OnModuleInit {
         })
       ).id;
     }
+    dbAdminId = dbAdminId!;
     console.clear();
     this.logger.log('管理员创建成功');
     let client = await this.prisma.client.findFirst({
