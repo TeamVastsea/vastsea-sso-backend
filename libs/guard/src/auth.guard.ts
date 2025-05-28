@@ -14,6 +14,7 @@ import { Request } from 'express';
 import Redis, { Cluster } from 'ioredis';
 import { AuthService } from '../../../src/auth/auth.service';
 import { PermissionService } from '../../../src/permission/permission.service';
+import { V2AuthService } from '../../../src/auth/v2/auth.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -21,6 +22,7 @@ export class AuthGuard implements CanActivate {
     private reflector: Reflector,
     private jwt: JwtService,
     private auth: AuthService,
+    private authv2: V2AuthService,
     private permissions: PermissionService,
     @AutoRedis() private redis: Redis | Cluster,
   ) {}
@@ -48,7 +50,9 @@ export class AuthGuard implements CanActivate {
       throw new HttpException(msg, HttpStatus.UNAUTHORIZED);
     }
     const { id } = this.jwt.decode<AccessTokenPayload>(token);
-    const activeState = await this.auth.active(BigInt(id)).then(Boolean);
+    const activeState = req.url.startsWith('/v2')
+      ? await this.authv2.active(id).then(Boolean)
+      : await this.auth.active(BigInt(id)).then(Boolean);
     if (!activeState) {
       throw new HttpException('未登录', HttpStatus.UNAUTHORIZED);
     }

@@ -5,6 +5,7 @@ import {
 
 declare global {
   type Configure = {
+    url: string;
     redis: {
       cluster?: ClusterClientOptions | ClusterClientOptions[];
       standalone?: RedisClientOptions | RedisClientOptions[];
