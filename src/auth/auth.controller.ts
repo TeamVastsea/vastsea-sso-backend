@@ -30,7 +30,6 @@ export class AuthController {
     private readonly jwt: JwtService,
     private readonly account: AccountService,
   ) {}
-
   @Post('/login')
   async login(@Body() body: LoginDto) {
     const loginHandle = await this.authService.login(body);
