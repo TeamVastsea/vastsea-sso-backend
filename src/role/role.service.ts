@@ -8,7 +8,7 @@ import Redis, { Cluster } from 'ioredis';
 import { CreateRole } from './dto/create-role.dto';
 import { GlobalCounterService } from '@app/global-counter';
 import { UpdateRole } from './dto/update-role.dto';
-import { isEmpty, isNil } from 'ramda';
+import { isEmpty, isNil, isNotNil } from 'ramda';
 import { Prisma } from '@prisma/client';
 import { ClientService } from '../client/client.service';
 import { PermissionService } from '../permission/permission.service';
@@ -42,7 +42,9 @@ export class RoleService {
       if (roles.some((role) => isNil(role) || isEmpty(role))) {
         throw new HttpException('参数错误', HttpStatus.BAD_REQUEST);
       }
-      return roles.map((role) => ({ id: role.id }));
+      return roles
+        .filter((role) => !isNil(role))
+        .map((role) => ({ id: role.id }));
     });
     const id = await this.cnt.incr(ID_COUNTER.ROLE);
     return this.prisma.role
@@ -127,7 +129,9 @@ export class RoleService {
             return permissions;
           })
           .then((permissions) => {
-            return permissions.map((permission) => ({ id: permission.id }));
+            return permissions
+              .filter(isNotNil)
+              .map((permission) => ({ id: permission.id }));
           })
           .catch((err) => {
             throw err;
@@ -144,6 +148,9 @@ export class RoleService {
           },
         })
       : undefined;
+    if (isNil(targetClient)) {
+      throw new HttpException('你必须选定一个客户端', HttpStatus.BAD_REQUEST);
+    }
     return this.prisma.role
       .update({
         where: {
@@ -201,13 +208,23 @@ export class RoleService {
     all?: boolean,
     name?: string,
   ) {
-    if (!all && !clientId) {
-      throw new HttpException('参数错误', HttpStatus.BAD_REQUEST);
+    // if (!all && !clientId) {
+    //   throw new HttpException('参数错误', HttpStatus.BAD_REQUEST);
+    // }
+    let rawKey = Promise.resolve<string | null>('');
+    if (all) {
+      if (!clientId) {
+        rawKey = this.redis.get(ROLE_TOTAL);
+      } else {
+        rawKey = this.redis.get(CLIENT_ROLE_TOTAL(clientId));
+      }
+    } else {
+      if (!clientId) {
+        throw new HttpException('参数错误', HttpStatus.BAD_REQUEST);
+      } else {
+        rawKey = this.redis.get(CLIENT_ROLE_TOTAL(clientId));
+      }
     }
-    const rawKey =
-      all && !clientId
-        ? this.redis.get(ROLE_TOTAL)
-        : this.redis.get(CLIENT_ROLE_TOTAL(clientId));
     let total = rawKey.then((val) => {
       return BigInt(val ?? 0);
     });
