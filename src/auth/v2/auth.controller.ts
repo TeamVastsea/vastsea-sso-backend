@@ -16,7 +16,7 @@ import { Request, Response } from 'express';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshToken } from '../dto/refresh-token';
 import { JwtService } from '@app/jwt';
-import { findLast, isNil } from 'ramda';
+import { isNil } from 'ramda';
 import { Auth } from '@app/decorator';
 import { Token } from '../token.decorator';
 
@@ -50,22 +50,23 @@ export class V2Auth {
       throw new HttpException('session-state 过期', HttpStatus.UNAUTHORIZED);
     }
     res.status(HttpStatus.OK);
-    return this.authService.readTokenPairById(id);
+    const code = this.authService.createCode();
+    await this.authService.invokeCode(code, id);
+    return { code };
   }
 
   @Get('/token')
   async getToken(
     @Query('code') code: string,
     @Res({ passthrough: true }) res: Response,
-    @Req() req: Request,
   ) {
-    if (req.cookies['session-state']) {
-      res.status(HttpStatus.OK);
-      return this.getTokenBySession(req, res);
-    }
     const id = await this.authService.readIdByCode(code);
     if (!id) {
       throw new HttpException('授权码过期', HttpStatus.BAD_REQUEST);
+    }
+    const pair = await this.authService.readTokenPairById(id);
+    if (pair) {
+      return pair;
     }
     const accessToken = await this.authService.createAccessToken(id);
     const refreshToken = await this.authService.createRefreshToken(id);
@@ -153,6 +154,7 @@ export class V2Auth {
       if (!id) {
         res.clearCookie('session-state');
         res.status(HttpStatus.OK);
+        return;
       }
       const session = await this.authService.readSessionById(id);
       if (session) {
@@ -167,8 +169,7 @@ export class V2Auth {
         await this.authService.invokeToken(id, refreshToken.token, 'refresh');
       }
       res.status(HttpStatus.OK);
-    } catch {
-    } finally {
+    } catch {} finally {
       res.clearCookie('session-state');
       res.status(HttpStatus.OK);
     }
