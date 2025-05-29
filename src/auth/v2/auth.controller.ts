@@ -5,6 +5,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Logger,
   Post,
   Query,
   Req,
@@ -22,6 +23,7 @@ import { Token } from '../token.decorator';
 
 @Controller('/v2/auth')
 export class V2Auth {
+  private logger: Logger = new Logger(V2Auth.name);
   constructor(
     private authService: V2AuthService,
     private clientService: ClientService,
@@ -169,7 +171,9 @@ export class V2Auth {
         await this.authService.invokeToken(id, refreshToken.token, 'refresh');
       }
       res.status(HttpStatus.OK);
-    } catch {} finally {
+    } catch (err) {
+      this.logger.error(err.message, err.stack);
+    } finally {
       res.clearCookie('session-state');
       res.status(HttpStatus.OK);
     }
