@@ -11,12 +11,14 @@ import { MailService } from '@app/mail';
 import { ConfigService } from '@app/config';
 import { FORGET_PASSWORD, UPDATE_PASSWORD } from '@app/mail/templates';
 import { Account, Profile } from '@prisma/client';
+import { V2AuthService } from '../auth/v2/auth.service';
 
 @Injectable()
 export class SecureService {
   constructor(
     private auth: AuthService,
     private account: AccountService,
+    private v2Auth: V2AuthService,
     private mail: MailService,
     private config: ConfigService,
     private accountService: AccountService,
@@ -37,7 +39,9 @@ export class SecureService {
     await this.account.updateAccount(account.id, {
       password: data.newPassword,
     });
+    // vv 要兼容 v1
     await this.account.kickout(account.id);
+    await this.v2Auth.kickout(account.id);
     return;
   }
   async forgetPassword(data: ForgetPassword) {

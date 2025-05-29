@@ -31,11 +31,11 @@ export class AuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
+    const http = context.switchToHttp();
+    const req: AuthReq = http.getRequest();
     if (!requiredToken) {
       return true;
     }
-    const http = context.switchToHttp();
-    const req: AuthReq = http.getRequest();
     const token = this.getToken(req);
     if (!token) {
       throw new HttpException('未登录', HttpStatus.UNAUTHORIZED);
@@ -50,7 +50,7 @@ export class AuthGuard implements CanActivate {
       throw new HttpException(msg, HttpStatus.UNAUTHORIZED);
     }
     const { id } = this.jwt.decode<AccessTokenPayload>(token);
-    const activeState = req.url.startsWith('/v2')
+    const activeState = req.headers['x-auth-version'] === '2'
       ? await this.authv2.active(id).then(Boolean)
       : await this.auth.active(BigInt(id)).then(Boolean);
     if (!activeState) {
