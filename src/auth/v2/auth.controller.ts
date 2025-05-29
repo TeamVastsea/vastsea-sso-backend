@@ -17,7 +17,7 @@ import { Request, Response } from 'express';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshToken } from '../dto/refresh-token';
 import { JwtService } from '@app/jwt';
-import { isNil } from 'ramda';
+import { isNil, isNotNil } from 'ramda';
 import { Auth } from '@app/decorator';
 import { Token } from '../token.decorator';
 
@@ -67,7 +67,7 @@ export class V2Auth {
       throw new HttpException('授权码过期', HttpStatus.BAD_REQUEST);
     }
     const pair = await this.authService.readTokenPairById(id);
-    if (pair) {
+    if (isNotNil(pair.accessToken.token) && isNotNil(pair.refreshToken.token)) {
       return pair;
     }
     const accessToken = await this.authService.createAccessToken(id);
@@ -165,10 +165,10 @@ export class V2Auth {
       const { accessToken, refreshToken } =
         await this.authService.readTokenPairById(id);
       if (accessToken.token) {
-        await this.authService.invokeToken(id, accessToken.token, 'access');
+        await this.authService.revokeToken(accessToken.token, 'access');
       }
       if (refreshToken.token) {
-        await this.authService.invokeToken(id, refreshToken.token, 'refresh');
+        await this.authService.revokeToken(refreshToken.token, 'refresh');
       }
       res.status(HttpStatus.OK);
     } catch (err) {

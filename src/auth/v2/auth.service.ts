@@ -84,8 +84,7 @@ export class V2AuthService {
     if (!id) {
       return true;
     }
-    await this.redis.del(tokenToId(token));
-    await this.redis.del(TOKEN(id, type));
+    await this.redis.del(tokenToId(token), TOKEN(id, type));
     return true;
   }
   invokeCode(code: string, id: string | bigint) {
@@ -94,7 +93,7 @@ export class V2AuthService {
   }
   async readTokenPairById(id: string) {
     const accessToken = await this.redis.get(TOKEN(id, 'access'));
-    const refreshToken = await this.redis.get(TOKEN(id, 'access'));
+    const refreshToken = await this.redis.get(TOKEN(id, 'refresh'));
     const accessTokenTTL = await this.redis.pttl(TOKEN(id, 'access'));
     const refreshTokenTTL = await this.redis.pttl(TOKEN(id, 'refresh'));
     return {
@@ -142,5 +141,21 @@ export class V2AuthService {
   }
   active(id: string | bigint) {
     return this.redis.exists(TOKEN(id, 'access'));
+  }
+  async kickout(id: string | bigint) {
+    const session = await this.readSessionById(id.toString());
+    if (session) {
+      await this.revokeSession(session);
+    }
+    const { accessToken, refreshToken } = await this.readTokenPairById(
+      id.toString(),
+    );
+    if (accessToken.token) {
+      await this.revokeToken(accessToken.token, 'access');
+    }
+    if (refreshToken.token) {
+      await this.revokeToken(refreshToken.token, 'refresh');
+    }
+    return true;
   }
 }
