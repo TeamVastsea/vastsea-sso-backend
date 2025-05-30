@@ -22,6 +22,17 @@ export class ProfileService {
   getProfile(id: bigint) {
     return this.prisma.profile.findFirst({
       where: { accountId: id },
+      select: {
+        accountId: true,
+        avatar: true,
+        desc: true,
+        nick: true,
+        account: {
+          select: {
+            createAt: true,
+          },
+        },
+      },
     });
   }
   profileExists(id: bigint) {
