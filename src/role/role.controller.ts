@@ -29,12 +29,12 @@ export class RoleController {
 
   @ApplyDecorator(
     Auth(),
-    Permission(['ROLE::CREATE']),
+    Permission(['AUTH::ROLE::CREATE']),
     RequiredClientAdministrator(
       {
-        lhs: { op: Operator.HAS, expr: '*' },
+        lhs: { op: Operator.HAS, expr: 'AUTH::*' },
         op: Operator.OR,
-        rhs: { op: Operator.HAS, expr: 'ROLE::CREATE::*' },
+        rhs: { op: Operator.HAS, expr: 'AUTH::ROLE::CREATE::*' },
       },
       'body',
       'clientId',
@@ -45,14 +45,14 @@ export class RoleController {
     return this.roleService.createRole(data);
   }
   @Auth()
-  @Permission(['ROLE::REMOVE'])
+  @Permission(['AUTH::ROLE::REMOVE'])
   @RequiredClientAdministrator({
     lhs: {
       op: Operator.HAS,
-      expr: '*',
+      expr: 'AUTH::*',
     },
     op: Operator.OR,
-    rhs: { op: Operator.HAS, expr: 'ROLE::REMOVE::*' },
+    rhs: { op: Operator.HAS, expr: 'AUTH::ROLE::REMOVE::*' },
   })
   @Delete('/:id')
   removeRole(@Param('id', BigIntPipe) id: bigint) {
@@ -60,12 +60,12 @@ export class RoleController {
   }
 
   @Auth()
-  @Permission(['ROLE::UPDATE'])
+  @Permission(['AUTH::ROLE::UPDATE'])
   @RequiredClientAdministrator(
     {
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'ROLE::UPDATE::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::ROLE::UPDATE::*' },
     },
     'body',
   )
@@ -75,9 +75,9 @@ export class RoleController {
     @Body() data: UpdateRole,
     @Account('id') actor: string,
     @PermissionJudge({
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'ROLE::UPDATE::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::ROLE::UPDATE::*' },
     })
     force: boolean,
   ) {
@@ -86,14 +86,14 @@ export class RoleController {
 
   @Auth()
   @Get('/:id')
-  @Permission(['ROLE::QUERY::INFO'])
+  @Permission(['AUTH::ROLE::QUERY::INFO'])
   @RequiredClientAdministrator({
     lhs: {
       op: Operator.HAS,
-      expr: '*',
+      expr: 'AUTH::*',
     },
     op: Operator.OR,
-    rhs: { op: Operator.HAS, expr: 'ROLE::QUERY::INFO::*' },
+    rhs: { op: Operator.HAS, expr: 'AUTH::ROLE::QUERY::INFO::*' },
   })
   findRoleInfo(@Param('id', BigIntPipe) id: bigint) {
     return this.roleService.findRole(
@@ -120,14 +120,14 @@ export class RoleController {
 
   @Auth()
   @Get()
-  @Permission(['ROLE::QUERY::LIST'])
+  @Permission(['AUTH::ROLE::QUERY::LIST'])
   @RequiredClientAdministrator({
     lhs: {
       op: Operator.HAS,
-      expr: '*',
+      expr: 'AUTH::*',
     },
     op: Operator.OR,
-    rhs: { op: Operator.HAS, expr: 'ROLE::QUERY::LIST::*' },
+    rhs: { op: Operator.HAS, expr: 'AUTH::ROLE::QUERY::LIST::*' },
   })
   findRoleList(
     @Query('clientId') clientId: string,
@@ -135,7 +135,7 @@ export class RoleController {
     @Query('size', new ParseIntPipe({ optional: true })) size: number,
     @PermissionJudge({
       op: Operator.HAS,
-      expr: '*',
+      expr: 'AUTH::*',
     })
     getAll: boolean,
     @Query('name') name?: string,

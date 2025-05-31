@@ -60,7 +60,7 @@ export class AuthGuard implements CanActivate {
       BigInt(id),
       process.env.CLIENT_ID,
     );
-    req.user = { id, permissions, super: permissions.includes('*') };
+    req.user = { id, permissions, super: permissions.includes('AUTH::*') };
     return true;
   }
   getToken(req: Request) {

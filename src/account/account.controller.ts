@@ -68,14 +68,14 @@ export class AccountController {
   }
 
   @Auth()
-  @Permission(['ACCOUNT::ADD'])
+  @Permission(['AUTH::ACCOUNT::ADD'])
   @Post('')
   async createAccount(
     @Body() body: CreateAccount,
     @PermissionJudge({
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'ACCOUNT::CREATE::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::ACCOUNT::CREATE::*' },
     })
     force: boolean,
   ) {
@@ -91,14 +91,14 @@ export class AccountController {
   }
 
   @Auth()
-  @Permission(['ACCOUNT::REMOVE'])
+  @Permission(['AUTH::ACCOUNT::REMOVE'])
   @Delete(':id')
   removeAccount(@Param('id', BigIntPipe) id: bigint) {
     return this.accountService.removeAccount(id);
   }
 
   @Auth()
-  @Permission(['ACCOUNT::UPDATE'])
+  @Permission(['AUTH::ACCOUNT::UPDATE'])
   @Patch(':id')
   updateAccount(
     @Param('id', BigIntPipe) id: bigint,
@@ -110,14 +110,14 @@ export class AccountController {
   }
 
   @Auth()
-  @Permission(['ACCOUNT::KICKOUT'])
+  @Permission(['AUTH::ACCOUNT::KICKOUT'])
   @Post('/kick/:id')
   kick(@Param('id', BigIntPipe) id: bigint) {
     return this.accountService.kickout(id);
   }
 
   @Auth()
-  @Permission(['ACCOUNT::QUERY::INFO'])
+  @Permission(['AUTH::ACCOUNT::QUERY::INFO'])
   @Get(':id')
   getAccountInfo(@Param('id', BigIntPipe) id: bigint) {
     const account = this.accountService.getAccountInfo(id);
@@ -130,7 +130,7 @@ export class AccountController {
   }
 
   @Auth()
-  @Permission(['ACCOUNT::QUERY::LIST'])
+  @Permission(['AUTH::ACCOUNT::QUERY::LIST'])
   @Get('')
   getAccountList(
     @Query('preId', new BigIntPipe({ optional: true })) preId: bigint,

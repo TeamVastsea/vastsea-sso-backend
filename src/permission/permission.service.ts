@@ -24,17 +24,26 @@ export class PermissionService {
     data: CreatePermission,
     actor: bigint,
     force: boolean,
+    isInit: boolean = false,
   ) {
     const dbPermission = await this.findPermission({ name: data.name });
     if (dbPermission && dbPermission.clientId === data.clientId) {
       throw new HttpException('权限字段存在', HttpStatus.BAD_REQUEST);
     }
-    if (dbPermission && !dbPermission.client) {
+    const targetClient = await this.prisma.client.findFirst({
+      where: {
+        clientId: data.clientId,
+      },
+      include: {
+        administrator: true,
+      },
+    });
+    if (!targetClient) {
       throw new HttpException('客户端不存在', HttpStatus.NOT_FOUND);
     }
     if (
-      dbPermission &&
-      dbPermission.client.administrator.every(
+      targetClient &&
+      targetClient.administrator.every(
         (administrator) => administrator.id !== actor,
       ) &&
       !force
@@ -45,7 +54,7 @@ export class PermissionService {
       .create({
         data: {
           id: await this.counter.incr(ID_COUNTER.PERMISSION),
-          name: data.name,
+          name: isInit ? data.name : `${targetClient.name}::${data.name}`,
           desc: data.desc,
           clientId: data.clientId,
           client: {

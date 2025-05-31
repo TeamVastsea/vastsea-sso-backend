@@ -67,25 +67,25 @@ export class PermissionController {
   })
   @ApiException(() => ForbiddenException, {
     description:
-      '如果你不是该客户端的管理员且没有拥有 PERMISSION::CREATE::* 或 * 权限, 那么或抛出403错误',
+      '如果你不是该客户端的管理员且没有拥有 AUTH::PERMISSION::CREATE::* 或 * 权限, 那么或抛出403错误',
   })
   @Post('/')
   @Auth()
   @Permission({
     lhs: {
       op: Operator.HAS,
-      expr: 'PERMISSION::CREATE',
+      expr: 'AUTH::PERMISSION::CREATE',
     },
     op: Operator.OR,
-    rhs: { op: Operator.HAS, expr: 'PERMISSION::CREATE::*' },
+    rhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::CREATE::*' },
   })
   createPermission(
     @Body() data: CreatePermission,
     @Account('id') actor: string,
     @PermissionJudge({
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'PERMISSION::CREATE::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::CREATE::*' },
     })
     force: boolean,
   ) {
@@ -100,17 +100,17 @@ export class PermissionController {
   })
   @ApiException(() => ForbiddenException, {
     description:
-      '如果你不是这个权限所属客户端的管理员, 且没有PERMISSION::REMOVE::* 则会抛出403',
+      '如果你不是这个权限所属客户端的管理员, 且没有AUTH::PERMISSION::REMOVE::* 则会抛出403',
   })
   @Auth()
   @Delete(':id')
   @Permission({
-    lhs: { op: Operator.HAS, expr: 'PERMISSION::REMOVE' },
+    lhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::REMOVE' },
     op: Operator.OR,
     rhs: {
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'PERMISSION::REMOVE::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::REMOVE::*' },
     },
   })
   @ApiParam({ name: 'id', description: '要删除的权限数据库主键' })
@@ -118,9 +118,9 @@ export class PermissionController {
     @Param('id', BigIntPipe) id: bigint,
     @Account('id') _userId: string,
     @PermissionJudge({
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'PERMISSION::REMOVE::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::REMOVE::*' },
     })
     allow: boolean,
   ) {
@@ -132,20 +132,20 @@ export class PermissionController {
   })
   @ApiException(() => ForbiddenException, {
     description:
-      '权限存在, 但是你不是这个权限所属客户端的管理员, 那么会抛出403错误. 除非调用方拥有 * 或 PERMISSION::UPDATE::* 权限',
+      '权限存在, 但是你不是这个权限所属客户端的管理员, 那么会抛出403错误. 除非调用方拥有 * 或 AUTH::PERMISSION::UPDATE::* 权限',
   })
   @ApiException(() => ForbiddenException, {
     description:
-      '权限存在, 但是调用方企图将权限转移到另一个不属于调用方管理的客户端中, 会抛出403错误. 除非调用方拥有 * 或 PERMISSION::UPDATE::* 权限',
+      '权限存在, 但是调用方企图将权限转移到另一个不属于调用方管理的客户端中, 会抛出403错误. 除非调用方拥有 * 或 AUTH::PERMISSION::UPDATE::* 权限',
   })
   @Auth()
   @Permission({
-    lhs: { op: Operator.HAS, expr: 'PERMISSION::UPDATE' },
+    lhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::UPDATE' },
     op: Operator.OR,
     rhs: {
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'PERMISSION::UPDATE::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::UPDATE::*' },
     },
   })
   @ApiParam({ name: 'id', description: '要修改的权限数据库主键' })
@@ -154,9 +154,9 @@ export class PermissionController {
     @Param('id', BigIntPipe) id: bigint,
     @Account('id') accountId: string,
     @PermissionJudge({
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'PERMISSION::UPDATE::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::UPDATE::*' },
     })
     force: boolean,
     @Body() data: UpdatePermission,
@@ -171,12 +171,12 @@ export class PermissionController {
 
   @Auth()
   @Permission({
-    lhs: { op: Operator.HAS, expr: 'PERMISSION::QUERY::LIST' },
+    lhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::QUERY::LIST' },
     op: Operator.OR,
     rhs: {
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'PERMISSION::QUERY::LIST::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::QUERY::LIST::*' },
     },
   })
   @ApiOkResponse({
@@ -209,9 +209,9 @@ export class PermissionController {
     @Query('size', new DefaultValuePipe(20), ParseIntPipe) size: number,
     @Query('name') name: string,
     @PermissionJudge({
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'PERMISSION::QUERY::LIST::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::QUERY::LIST::*' },
     })
     isSuper: boolean,
   ) {
@@ -270,12 +270,12 @@ export class PermissionController {
   @ApiParam({ name: 'id', description: '要获取的权限数据库主键' })
   @Auth()
   @Permission({
-    lhs: { op: Operator.HAS, expr: 'PERMISSION::QUERY::INFO' },
+    lhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::QUERY::INFO' },
     op: Operator.OR,
     rhs: {
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'PERMISSION::QUERY::INFO::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::QUERY::INFO::*' },
     },
   })
   @Get('/:id')
@@ -283,9 +283,9 @@ export class PermissionController {
     @Param('id', BigIntPipe) id: bigint,
     @Account('id') _accountId: string,
     @PermissionJudge({
-      lhs: { op: Operator.HAS, expr: '*' },
+      lhs: { op: Operator.HAS, expr: 'AUTH::*' },
       op: Operator.OR,
-      rhs: { op: Operator.HAS, expr: 'PERMISSION::QUERY::INFO::*' },
+      rhs: { op: Operator.HAS, expr: 'AUTH::PERMISSION::QUERY::INFO::*' },
     })
     force: boolean,
   ) {

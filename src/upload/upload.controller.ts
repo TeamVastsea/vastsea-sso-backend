@@ -60,7 +60,7 @@ export class UploadController {
     };
   }
 
-  @Permission(['UPDATE::CLIENT'])
+  @Permission(['AUTH::UPDATE::CLIENT'])
   @Auth()
   @Post('')
   @UseInterceptors(
@@ -100,7 +100,7 @@ export class UploadController {
     };
   }
 
-  @Permission(['REMOVE::IMAGE::*'])
+  @Permission(['AUTH::REMOVE::IMAGE::*'])
   @Auth()
   @Delete(':hash')
   async removeImage(@Param('hash') hash: string) {
