@@ -53,7 +53,7 @@ export class ClientController {
   @ApiCreatedResponse({ type: Client, description: '创建好的第三方客户端.' })
   @Auth()
   @Post('/')
-  @Permission(['CLIENT::CREATE'])
+  @Permission(['AUTH::CLIENT::CREATE'])
   createClient(
     @Body() createDto: CreateClient,
     @Account('id') accountId: string,
@@ -71,7 +71,7 @@ export class ClientController {
     description: `
     停用一个客户端, 如果该客户端不存在会抛出NotFound错误.
     如果该接口不是用户所管理, 则会抛出一个Forbidden错误.
-    如果用户拥有 * 或 CLIENT::REMOVE::* 权限, 那么无论这个客户端是否属于用户, 都会被停用
+    如果用户拥有 * 或 AUTH::CLIENT::REMOVE::* 权限, 那么无论这个客户端是否属于用户, 都会被停用
     `,
     summary: '停用客户端接口.',
   })
@@ -82,7 +82,7 @@ export class ClientController {
   })
   @Auth()
   @Delete('/:id')
-  @Permission(['CLIENT::REMOVE'])
+  @Permission(['AUTH::CLIENT::REMOVE'])
   removeClient(
     @Param('id', BigIntPipe) id: bigint,
     @Account('id') accountId: string,
@@ -92,9 +92,9 @@ export class ClientController {
       id,
       BigInt(accountId),
       permissionJudge(permissions, {
-        lhs: { op: Operator.HAS, expr: '*' },
+        lhs: { op: Operator.HAS, expr: 'AUTH::*' },
         op: Operator.OR,
-        rhs: { op: Operator.HAS, expr: 'CLIENT::REMOVE::*' },
+        rhs: { op: Operator.HAS, expr: 'AUTH::CLIENT::REMOVE::*' },
       }),
     );
   }
@@ -103,18 +103,18 @@ export class ClientController {
     description: `
     修改客户端, 如果该客户端不存在会抛出NotFound错误.
     如果该接口不是用户所管理, 则会抛出一个Forbidden错误.
-    如果用户拥有 * 或 CLIENT::UPDATE::* 权限, 那么无论这个客户端是否属于用户, 都会被修改
+    如果用户拥有 * 或 AUTH::CLIENT::UPDATE::* 权限, 那么无论这个客户端是否属于用户, 都会被修改
     `,
     summary: '修改客户端接口.',
   })
   @ApiOkResponse({ type: Client, description: '修改完成的第三方客户端' })
   @ApiException(() => ForbiddenException, {
     description:
-      '如果用户尝试修改一个不属于他的客户端, 将会抛出403错误. 如果用户存在 * 或 CLIENT::UPDATE::* 权限, 那么无论这个客户端是否归属该用户管理, 都会被修改',
+      '如果用户尝试修改一个不属于他的客户端, 将会抛出403错误. 如果用户存在 * 或 AUTH::CLIENT::UPDATE::* 权限, 那么无论这个客户端是否归属该用户管理, 都会被修改',
   })
   @Auth()
   @Patch('/:id')
-  @Permission(['CLIENT::UPDATE'])
+  @Permission(['AUTH::CLIENT::UPDATE'])
   updateClient(
     @Param('id', BigIntPipe) id: bigint,
     @Body() updateDto: UpdateClient,
@@ -126,9 +126,9 @@ export class ClientController {
       updateDto,
       BigInt(accountId),
       permissionJudge(permissions, {
-        lhs: { op: Operator.HAS, expr: '*' },
+        lhs: { op: Operator.HAS, expr: 'AUTH::*' },
         op: Operator.OR,
-        rhs: { op: Operator.HAS, expr: 'CLIENT::UPDATE::*' },
+        rhs: { op: Operator.HAS, expr: 'AUTH::CLIENT::UPDATE::*' },
       }),
     );
   }
@@ -137,7 +137,7 @@ export class ClientController {
     description: `
     获取客户端详细信息, 如果该客户端不存在会抛出NotFound错误.
     如果该接口不是用户所管理, 则会抛出一个Forbidden错误.
-    如果用户拥有 * 或 CLIENT::INFO::* 权限, 那么无论这个客户端是否属于用户, 都会被修改.
+    如果用户拥有 * 或 AUTH::CLIENT::INFO::* 权限, 那么无论这个客户端是否属于用户, 都会被修改.
     `,
     summary: '获取客户端详细信息接口.',
   })
@@ -147,11 +147,11 @@ export class ClientController {
   })
   @ApiException(() => NotFoundException, {
     description:
-      '如果用户企图获取不属于他管理的客户端的详细信息,那么会抛出一个404错误. 如果用户存在 * 或 CLIENT::QUERY::INFO::* 权限. 那么不会抛出404错误',
+      '如果用户企图获取不属于他管理的客户端的详细信息,那么会抛出一个404错误. 如果用户存在 * 或 AUTH::CLIENT::QUERY::INFO::* 权限. 那么不会抛出404错误',
   })
   @Auth()
   @Get(':id')
-  @Permission(['CLIENT::QUERY::INFO'])
+  @Permission(['AUTH::CLIENT::QUERY::INFO'])
   async getClientInfo(
     @Param('id', BigIntPipe) id: bigint,
     @Account('id') accountId: string,
@@ -165,9 +165,9 @@ export class ClientController {
     if (
       client.administrator.every((manager) => manager.id !== _accountId) &&
       !permissionJudge(permissions, {
-        lhs: { op: Operator.HAS, expr: '*' },
+        lhs: { op: Operator.HAS, expr: 'AUTH::*' },
         op: Operator.OR,
-        rhs: { op: Operator.HAS, expr: 'CLIENT::QUERY::INFO::*' },
+        rhs: { op: Operator.HAS, expr: 'AUTH::CLIENT::QUERY::INFO::*' },
       })
     ) {
       throw new HttpException('资源不存在', HttpStatus.NOT_FOUND);
@@ -208,7 +208,7 @@ export class ClientController {
   @ApiQuery({ name: 'size', description: '页大小' })
   @ApiOperation({
     description:
-      '如果操作角色拥有 CLIENT::QUERY::LIST::* 或 * 权限, 那么可以获取所有客户端列表',
+      '如果操作角色拥有 AUTH::CLIENT::QUERY::LIST::* 或 * 权限, 那么可以获取所有客户端列表',
     summary: '获取客户端列表',
   })
   @ApiResponse({
@@ -218,7 +218,7 @@ export class ClientController {
   })
   @Auth()
   @Get('/')
-  @Permission(['CLIENT::QUERY::LIST'])
+  @Permission(['AUTH::CLIENT::QUERY::LIST'])
   getClientList(
     @Query('preId', new BigIntPipe({ optional: true })) preId: bigint,
     @Query('size', new DefaultValuePipe(20), ParseIntPipe) size: number,
@@ -230,9 +230,9 @@ export class ClientController {
       preId,
       BigInt(accountId),
       permissionJudge(permissions, {
-        lhs: { op: Operator.HAS, expr: '*' },
+        lhs: { op: Operator.HAS, expr: 'AUTH::*' },
         op: Operator.OR,
-        rhs: { op: Operator.HAS, expr: 'CLIENT::QUERY::LIST::*' },
+        rhs: { op: Operator.HAS, expr: 'AUTH::CLIENT::QUERY::LIST::*' },
       }),
     );
   }
