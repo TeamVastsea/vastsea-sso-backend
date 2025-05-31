@@ -2,3 +2,5 @@ node_modules
 keys
 dist
 .env
+dump.rdb
+prisma/dev.db

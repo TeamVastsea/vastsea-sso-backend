@@ -5,6 +5,7 @@ import {
   Get,
   HttpException,
   HttpStatus,
+  Logger,
   Post,
   Query,
   Req,
@@ -16,12 +17,13 @@ import { Request, Response } from 'express';
 import { LoginDto } from '../dto/login.dto';
 import { RefreshToken } from '../dto/refresh-token';
 import { JwtService } from '@app/jwt';
-import { findLast, isNil } from 'ramda';
+import { isNil, isNotNil } from 'ramda';
 import { Auth } from '@app/decorator';
 import { Token } from '../token.decorator';
 
 @Controller('/v2/auth')
 export class V2Auth {
+  private logger: Logger = new Logger(V2Auth.name);
   constructor(
     private authService: V2AuthService,
     private clientService: ClientService,
@@ -50,22 +52,23 @@ export class V2Auth {
       throw new HttpException('session-state 过期', HttpStatus.UNAUTHORIZED);
     }
     res.status(HttpStatus.OK);
-    return this.authService.readTokenPairById(id);
+    const code = this.authService.createCode();
+    await this.authService.invokeCode(code, id);
+    return { code };
   }
 
   @Get('/token')
   async getToken(
     @Query('code') code: string,
     @Res({ passthrough: true }) res: Response,
-    @Req() req: Request,
   ) {
-    if (req.cookies['session-state']) {
-      res.status(HttpStatus.OK);
-      return this.getTokenBySession(req, res);
-    }
     const id = await this.authService.readIdByCode(code);
     if (!id) {
       throw new HttpException('授权码过期', HttpStatus.BAD_REQUEST);
+    }
+    const pair = await this.authService.readTokenPairById(id);
+    if (isNotNil(pair.accessToken.token) && isNotNil(pair.refreshToken.token)) {
+      return pair;
     }
     const accessToken = await this.authService.createAccessToken(id);
     const refreshToken = await this.authService.createRefreshToken(id);
@@ -153,6 +156,7 @@ export class V2Auth {
       if (!id) {
         res.clearCookie('session-state');
         res.status(HttpStatus.OK);
+        return;
       }
       const session = await this.authService.readSessionById(id);
       if (session) {
@@ -161,13 +165,14 @@ export class V2Auth {
       const { accessToken, refreshToken } =
         await this.authService.readTokenPairById(id);
       if (accessToken.token) {
-        await this.authService.invokeToken(id, accessToken.token, 'access');
+        await this.authService.revokeToken(accessToken.token, 'access');
       }
       if (refreshToken.token) {
-        await this.authService.invokeToken(id, refreshToken.token, 'refresh');
+        await this.authService.revokeToken(refreshToken.token, 'refresh');
       }
       res.status(HttpStatus.OK);
-    } catch {
+    } catch (err) {
+      this.logger.error(err.message, err.stack);
     } finally {
       res.clearCookie('session-state');
       res.status(HttpStatus.OK);

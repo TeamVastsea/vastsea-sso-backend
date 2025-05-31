@@ -6,12 +6,14 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import { SecureService } from './secure.service';
 import { ForgetPassword } from './dto/forget-password';
 import { UpdatePassword } from './dto/update-password';
 import { Account, Auth } from '@app/decorator';
 import { AccountService } from '../account/account.service';
+import { Response } from 'express';
 
 @Controller('secure')
 export class SecureController {
@@ -26,11 +28,17 @@ export class SecureController {
   }
 
   @Patch('/password/forget')
-  async forgetPassword(@Body() body: ForgetPassword) {
+  async forgetPassword(
+    @Res({ passthrough: true }) resp: Response,
+    @Body() body: ForgetPassword,
+  ) {
     return this.secureService
       .forgetPassword(body)
       .then(() => this.secureService.revokeCode('forget', body.email))
-      .then(() => {});
+      .then(() => {
+        resp.clearCookie('session-state');
+        resp.status(HttpStatus.OK);
+      });
   }
 
   @Auth()
