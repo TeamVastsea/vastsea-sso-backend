@@ -158,4 +158,17 @@ export class V2AuthService {
     }
     return true;
   }
+  async logout(id: string) {
+    const session = await this.readSessionById(id);
+    if (session) {
+      await this.revokeSession(session);
+    }
+    const { accessToken, refreshToken } = await this.readTokenPairById(id);
+    if (accessToken.token) {
+      await this.invokeToken(id, accessToken.token, 'access');
+    }
+    if (refreshToken.token) {
+      await this.invokeToken(id, refreshToken.token, 'refresh');
+    }
+  }
 }

@@ -16,7 +16,7 @@ import { V2AuthService } from '../auth/v2/auth.service';
 @Injectable()
 export class SecureService {
   constructor(
-    private auth: AuthService,
+    private auth: V2AuthService,
     private account: AccountService,
     private v2Auth: V2AuthService,
     private mail: MailService,
@@ -41,6 +41,7 @@ export class SecureService {
     });
     // vv 要兼容 v1
     await this.account.kickout(account.id);
+    await this.auth.logout(account.id.toString());
     await this.v2Auth.kickout(account.id);
     return;
   }
