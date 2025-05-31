@@ -43,6 +43,7 @@ export class SecureService {
     await this.account.kickout(account.id);
     await this.auth.logout(account.id.toString());
     await this.v2Auth.kickout(account.id);
+    await this.auth.logout(account.id.toString());
     return;
   }
   async forgetPassword(data: ForgetPassword) {
