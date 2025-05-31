@@ -15,6 +15,7 @@ export class ProfileService {
         data: {
           nick: data.nick,
           desc: data.desc,
+          avatar: data.avatar
         },
       })
       .then((profile) => profile);
