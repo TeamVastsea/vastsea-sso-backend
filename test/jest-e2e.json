@@ -1,0 +1,21 @@
+{
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "@app/config": "<rootDir>/../libs/config/src",
+    "@app/config/(.*)": "<rootDir>/../libs/config/src/$1",
+    "@app/jwt": "<rootDir>/../libs/jwt/src",
+    "@app/jwt/(.*)": "<rootDir>/../libs/jwt/src/$1",
+    "@app/logger": "<rootDir>/../libs/logger/src",
+    "@app/logger/(.*)": "<rootDir>/../libs/logger/src/$1"
+  }
+}
