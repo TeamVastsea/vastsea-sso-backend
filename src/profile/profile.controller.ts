@@ -6,16 +6,40 @@ import {
   HttpStatus,
   Param,
   Patch,
+  Post,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { Token } from '../auth/token.decorator';
 import { isNil, isNotNil } from 'ramda';
 import { Public } from '../auth/auth.decorator';
 import { UpdateProfile } from './dto/update-profile.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { createHash } from 'crypto';
 
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
+
+  @Post('/avatar')
+  @UseInterceptors(FilesInterceptor('file'))
+  async uploadAvatar(
+    @Token() user: UserPayload,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const filehash = createHash('sha512')
+      .update(file.buffer)
+      .digest('hex')
+      .toLowerCase();
+    await this.profileService.uploadAvatar(user.id, file.buffer, filehash);
+    return filehash;
+  }
+  @Post('/avatar/:hash')
+  @Public()
+  getAvatar(@Param('hash') hash: string) {
+    return this.getAvatar(hash);
+  }
 
   @Patch('/')
   async patchProfile(@Token() user: UserPayload, @Body() body: UpdateProfile) {

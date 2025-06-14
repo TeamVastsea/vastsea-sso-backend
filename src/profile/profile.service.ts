@@ -1,13 +1,13 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { CreateProfile } from './dto/create-profile.dto';
-import { isNil, isNotEmpty, isNotNil } from 'ramda';
+import { isNil, isNotNil } from 'ramda';
 import { UpdateProfile } from './dto/update-profile.dto';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
 import { ConfigService } from '@app/config';
 import { join } from 'path';
-import { unlinkSync, writeFileSync } from 'fs';
+import { readFileSync, unlinkSync, writeFileSync } from 'fs';
 
 @Injectable()
 export class ProfileService {
@@ -73,10 +73,15 @@ export class ProfileService {
       })
       .then((user) => user);
   }
-
+  async readAvatar(hash: string) {
+    if (!(await this.redis.exists(`AVATAR::${hash}::REF`))) {
+      throw new HttpException('资源不存在', HttpStatus.NOT_FOUND);
+    }
+    return readFileSync(join(process.env.BASE_PATH, hash));
+  }
   async uploadAvatar(id: string, file: Buffer, hash: string) {
     if (!(await this.redis.exists(`AVATAR::${hash}::REF`))) {
-      const path = join(process.env.SSO_PATH, hash);
+      const path = join(process.env.BASE_PATH, hash);
       writeFileSync(path, file);
     }
     const profile = await this.prisma.profile.findFirst({
@@ -90,7 +95,7 @@ export class ProfileService {
       await this.redis.decr(`AVATAR::${hash}::REF`);
       const cur = await this.redis.get(`AVATAR::${hash}::REF`);
       if (!cur) {
-        const path = join(process.env.SSO_PATH, hash);
+        const path = join(process.env.BASE_PATH, hash);
         unlinkSync(path);
       }
     }
@@ -99,7 +104,7 @@ export class ProfileService {
     await this.prisma.profile.update({
       where: { id },
       data: {
-        avatar: `${url}/${hash}`,
+        avatar: `${url}/avatar/${hash}`,
       },
     });
   }
