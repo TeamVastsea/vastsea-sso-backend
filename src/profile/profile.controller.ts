@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -15,24 +16,28 @@ import { TokenPayload } from '../auth/token.decorator';
 import { isNil, isNotNil } from 'ramda';
 import { Public } from '../auth/auth.decorator';
 import { UpdateProfile } from './dto/update-profile.dto';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import {
+  AnyFilesInterceptor,
+  FilesInterceptor,
+} from '@nestjs/platform-express';
 import { createHash } from 'crypto';
 
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
+  @Public()
   @Post('/avatar')
-  @UseInterceptors(FilesInterceptor('file'))
   async uploadAvatar(
-    @TokenPayload() user: UserPayload,
+    @Query('id') id: string,
+    // @TokenPayload() user: UserPayload,
     @UploadedFile() file: Express.Multer.File,
   ) {
     const filehash = createHash('sha512')
       .update(file.buffer)
       .digest('hex')
       .toLowerCase();
-    await this.profileService.uploadAvatar(user.id, file.buffer, filehash);
+    await this.profileService.uploadAvatar(id, file.buffer, filehash);
     return filehash;
   }
   @Post('/avatar/:hash')
@@ -64,9 +69,10 @@ export class ProfileController {
         id: remoteProfile.id!,
         nick: remoteProfile.displayName ?? remoteProfile.email ?? '',
         bio: remoteProfile.bio ?? '',
+        createAt: remoteProfile.createdTime ?? new Date().toLocaleDateString(),
       });
     }
-    return localProfile;
+    return this.profileService.getProfile(user.id);
   }
 
   @Public()
@@ -85,7 +91,8 @@ export class ProfileController {
       id: remoteProfile.id!,
       nick: remoteProfile.displayName ?? remoteProfile.email ?? '',
       bio: remoteProfile.bio ?? '',
+      createAt: remoteProfile.createdTime ?? new Date().toLocaleDateString(),
     });
-    return localProfile;
+    return this.profileService.getProfile(id);
   }
 }

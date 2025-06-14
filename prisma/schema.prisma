@@ -15,9 +15,10 @@ datasource db {
 }
 
 model Profile {
-  id      String  @id
-  email   String
-  nick    String
-  bio     String
-  avatar  String
+  id       String  @id
+  email    String
+  nick     String
+  bio      String
+  avatar   String
+  createAt String
 }

@@ -7,7 +7,13 @@ import { RedisService } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
 import { ConfigService } from '@app/config';
 import { join } from 'path';
-import { readFileSync, unlinkSync, writeFileSync } from 'fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from 'fs';
 
 @Injectable()
 export class ProfileService {
@@ -81,6 +87,9 @@ export class ProfileService {
   }
   async uploadAvatar(id: string, file: Buffer, hash: string) {
     if (!(await this.redis.exists(`AVATAR::${hash}::REF`))) {
+      if (!existsSync(join(__dirname, 'avatar'))) {
+        mkdirSync(join(__dirname, 'avatar'));
+      }
       const path = join(__dirname, 'avatar', hash);
       writeFileSync(path, file);
     }
@@ -91,12 +100,14 @@ export class ProfileService {
     if (isNil(profile)) {
       throw new HttpException('账号不存在', HttpStatus.BAD_REQUEST);
     }
-    if (profile.avatar.endsWith(hash)) {
-      await this.redis.decr(`AVATAR::${hash}::REF`);
-      const cur = await this.redis.get(`AVATAR::${hash}::REF`);
-      if (!cur) {
-        const path = join(__dirname, 'avatar', hash);
+    const userAvatarHash = profile.avatar.split('/').at(-1);
+    if (userAvatarHash !== hash && userAvatarHash) {
+      await this.redis.decr(`AVATAR::${userAvatarHash}::REF`);
+      const cur = await this.redis.get(`AVATAR::${userAvatarHash}::REF`);
+      if (cur === '0') {
+        const path = join(__dirname, 'avatar', userAvatarHash);
         unlinkSync(path);
+        await this.redis.del(`AVATAR::${userAvatarHash}::REF`);
       }
     }
     await this.redis.incr(`AVATAR::${hash}::REF`);

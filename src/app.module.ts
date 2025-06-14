@@ -1,7 +1,7 @@
 import { ConfigModule, ConfigService } from '@app/config';
 import { LoggerModule as WinstonLogger } from '@app/logger';
 import { Module, OnModuleInit } from '@nestjs/common';
-import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ProfileModule } from './profile/profile.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
@@ -10,6 +10,7 @@ import AuthGuard from './auth/auth.guard';
 import { PrismaModule } from 'nestjs-prisma';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Module({
   imports: [
@@ -43,6 +44,10 @@ import { join } from 'path';
     {
       provide: APP_GUARD,
       useClass: AuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: FileInterceptor('file'),
     },
   ],
 })
