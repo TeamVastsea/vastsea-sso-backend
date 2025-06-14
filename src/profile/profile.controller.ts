@@ -11,7 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
-import { Token } from '../auth/token.decorator';
+import { TokenPayload } from '../auth/token.decorator';
 import { isNil, isNotNil } from 'ramda';
 import { Public } from '../auth/auth.decorator';
 import { UpdateProfile } from './dto/update-profile.dto';
@@ -25,7 +25,7 @@ export class ProfileController {
   @Post('/avatar')
   @UseInterceptors(FilesInterceptor('file'))
   async uploadAvatar(
-    @Token() user: UserPayload,
+    @TokenPayload() user: UserPayload,
     @UploadedFile() file: Express.Multer.File,
   ) {
     const filehash = createHash('sha512')
@@ -42,12 +42,15 @@ export class ProfileController {
   }
 
   @Patch('/')
-  async patchProfile(@Token() user: UserPayload, @Body() body: UpdateProfile) {
+  async patchProfile(
+    @TokenPayload() user: UserPayload,
+    @Body() body: UpdateProfile,
+  ) {
     return this.profileService.updateProfile(user.id, body);
   }
 
   @Get('/')
-  async getProfile(@Token() user: UserPayload) {
+  async getProfile(@TokenPayload() user: UserPayload) {
     const localProfile = await this.profileService.getProfile(user.id);
     if (isNil(localProfile)) {
       const remoteProfile = await this.profileService.getRemoteProfileById(

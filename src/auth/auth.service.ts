@@ -13,7 +13,7 @@ export class AuthService {
   }
 
   localTokenActive(token: string) {
-    return this.redis.exists(`TK::AT::${token}`);
+    return this.redis.exists(`TOKEN::${token}`);
   }
   ssoTokenActive(token: string) {
     return this.redis.exists(`TK::AT::${token}`);

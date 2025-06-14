@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './auth.decorator';
+import { Token, TokenPayload } from './token.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -17,5 +18,10 @@ export class AuthController {
       tokenPair.expires_in,
     );
     return { localToken: localToken.localToken, id: sub };
+  }
+  @Get('/token/decode')
+  async deocdeToken(@Token() token: string) {
+    const id = await this.authService.decodeToken(token);
+    return { id };
   }
 }
