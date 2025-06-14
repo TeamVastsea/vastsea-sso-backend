@@ -17,7 +17,7 @@ import assert from 'assert';
     ConfigModule.forRoot({
       loader: () => {
         return JSON.parse(
-          readFileSync(join(__dirname, '../config.json')).toString(),
+          readFileSync(join(__dirname, '../config/config.json')).toString(),
         );
       },
       global: true,
@@ -51,7 +51,7 @@ export class AppModule implements OnModuleInit {
   constructor(private config: ConfigService) {}
   async onModuleInit() {
     const ROOT = join(__dirname);
-    assert(existsSync(join(ROOT, '../config.json')), '未找到配置文件');
+    assert(existsSync(join(ROOT, '../config/config.json')), '未找到配置文件');
     assert(Boolean(await this.config.get('url')), 'Url 配置项不存在');
     assert(Boolean(await this.config.get('logger')), 'Logger 配置项不存在');
     assert(process.env.CLIENT_ID, '环境变量: CLIENT_ID 不存在');
