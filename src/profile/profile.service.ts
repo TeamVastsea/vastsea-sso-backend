@@ -41,9 +41,9 @@ export class ProfileService {
     });
   }
 
-  updateProfile(email: string, profile: UpdateProfile) {
+  updateProfile(id: string, profile: UpdateProfile) {
     return this.prisma.profile.update({
-      where: { email },
+      where: { id },
       data: {
         ...profile,
       },

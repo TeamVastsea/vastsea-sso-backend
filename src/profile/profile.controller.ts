@@ -1,18 +1,26 @@
 import {
+  Body,
   Controller,
   Get,
   HttpException,
   HttpStatus,
   Param,
+  Patch,
 } from '@nestjs/common';
 import { ProfileService } from './profile.service';
 import { Token } from '../auth/token.decorator';
-import { isEmpty, isNil, isNotEmpty, isNotNil } from 'ramda';
+import { isNil, isNotNil } from 'ramda';
 import { Public } from '../auth/auth.decorator';
+import { UpdateProfile } from './dto/update-profile.dto';
 
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
+
+  @Patch('/')
+  async patchProfile(@Token() user: UserPayload, @Body() body: UpdateProfile) {
+    return this.profileService.updateProfile(user.id, body);
+  }
 
   @Get('/')
   async getProfile(@Token() user: UserPayload) {
