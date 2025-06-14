@@ -11,6 +11,6 @@ COPY --from=BUILDER package.json .
 COPY --from=BUILDER pnpm-lock.yaml .
 COPY --from=BUILDER dist .
 
-RUN npm i -g pnpm && pnpm ci && pnpm prisma migrate deploy
+RUN npm i -g pnpm && pnpm ci
 
 CMD [ "sh -c", "pnpm prisma migrate deploy && node ./dist/main.js" ]
