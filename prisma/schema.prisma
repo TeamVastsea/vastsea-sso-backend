@@ -11,11 +11,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
 }
 
 model Profile {
-  email   String  @id
+  id      String  @id
+  email   String
   nick    String
   bio     String
   avatar  String

@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'nestjs-prisma';
 import { CreateProfile } from './dto/create-profile.dto';
-import { isNil, isNotEmpty } from 'ramda';
+import { isNil, isNotEmpty, isNotNil } from 'ramda';
 import { UpdateProfile } from './dto/update-profile.dto';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
@@ -30,7 +30,7 @@ export class ProfileService {
         email: data.email,
       },
     });
-    if (isNotEmpty(profile)) {
+    if (isNotNil(profile)) {
       return profile;
     }
     return this.prisma.profile.create({
@@ -50,19 +50,37 @@ export class ProfileService {
     });
   }
 
-  getProfile(email: string) {
+  getProfile(id: string) {
     return this.prisma.profile.findFirst({
-      where: { email },
+      where: { id },
     });
   }
 
-  async uploadAvatar(email: string, file: Buffer, hash: string) {
+  getRemoteProfileById(id: string) {
+    const url = new URL(`${process.env.SSO_PATH}/api/get-user`);
+    url.searchParams.set('clientId', process.env.CLIENT_ID);
+    url.searchParams.set('clientSecret', process.env.CLIENT_SECRET);
+    url.searchParams.set('userId', id);
+    return fetch(url, {
+      method: 'GET',
+    })
+      .then((resp) => resp.json())
+      .then((body: GetProfile) => {
+        if (body.status === 'error') {
+          throw new HttpException('用户不存在', HttpStatus.BAD_REQUEST);
+        }
+        return body.data;
+      })
+      .then((user) => user);
+  }
+
+  async uploadAvatar(id: string, file: Buffer, hash: string) {
     if (!(await this.redis.exists(`AVATAR::${hash}::REF`))) {
-      const path = join(process.env.BASE_PATH, hash);
+      const path = join(process.env.SSO_PATH, hash);
       writeFileSync(path, file);
     }
     const profile = await this.prisma.profile.findFirst({
-      where: { email },
+      where: { id },
       select: { avatar: true },
     });
     if (isNil(profile)) {
@@ -72,14 +90,14 @@ export class ProfileService {
       await this.redis.decr(`AVATAR::${hash}::REF`);
       const cur = await this.redis.get(`AVATAR::${hash}::REF`);
       if (!cur) {
-        const path = join(process.env.BASE_PATH, hash);
+        const path = join(process.env.SSO_PATH, hash);
         unlinkSync(path);
       }
     }
     await this.redis.incr(`AVATAR::${hash}::REF`);
     const url = await this.config.get('url');
     await this.prisma.profile.update({
-      where: { email },
+      where: { id },
       data: {
         avatar: `${url}/${hash}`,
       },

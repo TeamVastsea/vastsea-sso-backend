@@ -1,10 +1,13 @@
 import { ConfigModule } from '@app/config';
 import { LoggerModule as WinstonLogger } from '@app/logger';
 import { Module } from '@nestjs/common';
-import { APP_PIPE } from '@nestjs/core';
+import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { ZodValidationPipe } from 'nestjs-zod';
 import { ProfileModule } from './profile/profile.module';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { AuthModule } from './auth/auth.module';
+import AuthGuard from './auth/auth.guard';
+import { PrismaModule } from 'nestjs-prisma';
 
 @Module({
   imports: [
@@ -34,11 +37,17 @@ import { RedisModule } from '@liaoliaots/nestjs-redis';
     }),
     WinstonLogger,
     ProfileModule,
+    AuthModule,
+    PrismaModule.forRoot({ isGlobal: true }),
   ],
   providers: [
     {
       provide: APP_PIPE,
       useClass: ZodValidationPipe,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
     },
   ],
 })
