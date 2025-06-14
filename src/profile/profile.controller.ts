@@ -26,18 +26,16 @@ import { createHash } from 'crypto';
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
 
-  @Public()
   @Post('/avatar')
   async uploadAvatar(
-    @Query('id') id: string,
-    // @TokenPayload() user: UserPayload,
+    @TokenPayload() user: UserPayload,
     @UploadedFile() file: Express.Multer.File,
   ) {
     const filehash = createHash('sha512')
       .update(file.buffer)
       .digest('hex')
       .toLowerCase();
-    await this.profileService.uploadAvatar(id, file.buffer, filehash);
+    await this.profileService.uploadAvatar(user.id, file.buffer, filehash);
     return filehash;
   }
   @Post('/avatar/:hash')
