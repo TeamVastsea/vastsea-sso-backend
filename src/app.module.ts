@@ -54,7 +54,6 @@ export class AppModule implements OnModuleInit {
     assert(existsSync(join(ROOT, '../config.json')), '未找到配置文件');
     assert(Boolean(await this.config.get('url')), 'Url 配置项不存在');
     assert(Boolean(await this.config.get('logger')), 'Logger 配置项不存在');
-    assert(process.env.BASE_PATH, '环境变量: BASE PATH 不存在');
     assert(process.env.CLIENT_ID, '环境变量: CLIENT_ID 不存在');
     assert(process.env.CLIENT_SECRET, '环境变量: CLIENT_SECRET 不存在');
     assert(process.env.SSO_PATH, '环境变量: SSO_PATH 不存在');

@@ -35,7 +35,7 @@ export class AuthService {
       'Authorization',
       `Basic ${Buffer.from(`${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`).toString('base64url')}`,
     );
-    return fetch(`${process.env.BASE_PATH}/api/login/oauth/introspect`, {
+    return fetch(`${process.env.SSO_PATH}/api/login/oauth/introspect`, {
       method: 'POST',
       headers,
       body: JSON.stringify({

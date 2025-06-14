@@ -77,11 +77,11 @@ export class ProfileService {
     if (!(await this.redis.exists(`AVATAR::${hash}::REF`))) {
       throw new HttpException('资源不存在', HttpStatus.NOT_FOUND);
     }
-    return readFileSync(join(process.env.BASE_PATH, hash));
+    return readFileSync(join(__dirname, 'avatar', hash));
   }
   async uploadAvatar(id: string, file: Buffer, hash: string) {
     if (!(await this.redis.exists(`AVATAR::${hash}::REF`))) {
-      const path = join(process.env.BASE_PATH, hash);
+      const path = join(__dirname, 'avatar', hash);
       writeFileSync(path, file);
     }
     const profile = await this.prisma.profile.findFirst({
@@ -95,7 +95,7 @@ export class ProfileService {
       await this.redis.decr(`AVATAR::${hash}::REF`);
       const cur = await this.redis.get(`AVATAR::${hash}::REF`);
       if (!cur) {
-        const path = join(process.env.BASE_PATH, hash);
+        const path = join(__dirname, 'avatar', hash);
         unlinkSync(path);
       }
     }
