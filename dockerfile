@@ -2,7 +2,7 @@ FROM node:23-alpine AS BUILDER
 
 ADD . .
 
-RUN npm i -g pnpm && pnpm ci && pnpm build
+RUN npm i -g pnpm && pnpm install --frozen-lockfile && pnpm build
 
 FROM node:23-alpine AS RUNNER
 
@@ -11,6 +11,6 @@ COPY --from=BUILDER package.json .
 COPY --from=BUILDER pnpm-lock.yaml .
 COPY --from=BUILDER dist .
 
-RUN npm i -g pnpm && pnpm ci
+RUN npm i -g pnpm && pnpm install --frozen-lockfile
 
 CMD [ "sh -c", "pnpm prisma migrate deploy && node ./dist/main.js" ]
