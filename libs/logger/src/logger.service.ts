@@ -1,18 +1,15 @@
 import { ConfigService } from '@app/config';
 import { Injectable } from '@nestjs/common';
 import { WinstonModuleOptionsFactory } from 'nest-winston';
-import winston, { transports } from 'winston';
+import * as winston from 'winston';
 import 'winston-daily-rotate-file';
-import {
-  utilities as nestWinstonModuleUtilities,
-  WinstonModule,
-} from 'nest-winston';
+import { utilities as nestWinstonModuleUtilities } from 'nest-winston';
 
 @Injectable()
 export class WinstonLoggerService implements WinstonModuleOptionsFactory {
   constructor(private config: ConfigService) {}
   async createTransport(level: string) {
-    return new transports.DailyRotateFile({
+    return new winston.transports.DailyRotateFile({
       level,
       dirname: await this.config.get('logger.dirname'),
       filename: await this.config.get('logger.filename'),
