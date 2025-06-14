@@ -2,7 +2,7 @@ FROM node:23-alpine AS BUILDER
 
 ADD . .
 
-RUN npm i -g pnpm && pnpm i && pnpm build
+RUN npm i -g pnpm && pnpm ci && pnpm build
 
 FROM node:23-alpine AS RUNNER
 
@@ -11,6 +11,6 @@ COPY --from=BUILDER package.json .
 COPY --from=BUILDER pnpm-lock.yaml .
 COPY --from=BUILDER dist .
 
-RUN npm i -g pnpm && pnpm i
+RUN npm i -g pnpm && pnpm ci
 
 CMD [ "node", "dist/index.js" ]
