@@ -1,0 +1,10 @@
+{
+  "url": "http://example.org",
+  "logger": {
+    "level": ["debug"],
+    "dirname": "logs",
+    "filename": "%DATE%-error.log",
+    "datePattern": "YYYY-MM-DD",
+    "maxSize": "20m"
+  }
+}
