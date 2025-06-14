@@ -33,15 +33,15 @@ export class AuthService {
     headers.set('Content-Type', 'application/x-www-form-urlencoded');
     headers.set(
       'Authorization',
-      `Basic ${Buffer.from(`${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`).toString('base64url')}`,
+      `Basic ${Buffer.from(`${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`).toString('base64')}`,
     );
+    const body = new URLSearchParams();
+    body.set('token', token);
+    body.set('token_type_hint', 'access_token');
     return fetch(`${process.env.SSO_PATH}/api/login/oauth/introspect`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        token: token,
-        token_type_hint: 'access_token',
-      }),
+      body,
     })
       .then((resp) => resp.json())
       .then((body: TokenPayload) => {
@@ -74,10 +74,10 @@ export class AuthService {
   }
   async storageToken(id: string, accessToken: string, ttl: number) {
     const localToken = randomBytes(64).toString('base64url').slice(0, 32);
-    await this.redis.psetex(`TK::AT::${accessToken}`, localToken, ttl);
-    await this.redis.psetex(`TK::AT::${localToken}`, accessToken, ttl);
-    await this.redis.psetex(`TOKEN::${localToken}`, id, ttl);
-    await this.redis.psetex(`ID::TOKEN::${id}`, accessToken, ttl);
+    await this.redis.psetex(`TK::AT::${accessToken}`, ttl, localToken);
+    await this.redis.psetex(`TK::AT::${localToken}`, ttl, accessToken);
+    await this.redis.psetex(`TOKEN::${localToken}`, ttl, id);
+    await this.redis.psetex(`ID::TOKEN::${id}`, ttl, accessToken);
     return { localToken, ttl };
   }
   decodeToken(localToken: string) {

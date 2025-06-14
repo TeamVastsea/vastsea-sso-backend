@@ -18,10 +18,12 @@ declare type TokenPayload =
     }
   | {
       active: true;
-      client_id: string;
-      name: string;
-      id: string;
-      email: string;
+      clientId: string;
+      username: string;
+      sub: string;
+      aud: string;
+      iss: string'
+      jti: string;
     };
 
 declare type GetProfile =

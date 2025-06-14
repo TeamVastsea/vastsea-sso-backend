@@ -10,12 +10,12 @@ export class AuthController {
   @Get('/token')
   async getToken(@Query('code') code: string) {
     const tokenPair = await this.authService.getTokenPair(code);
-    const { id } = await this.authService.introspect(tokenPair.access_token);
+    const { sub } = await this.authService.introspect(tokenPair.access_token);
     const localToken = await this.authService.storageToken(
-      id,
+      sub,
       tokenPair.access_token,
       tokenPair.expires_in,
     );
-    return localToken;
+    return { localToken: localToken.localToken, id: sub };
   }
 }
